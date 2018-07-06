@@ -2,13 +2,16 @@ from flask import Flask, request, render_template
 import MySQLdb
 from datetime import time, date, datetime
 from pytz import timezone
+import json
 
 app = Flask(__name__)
 
-db = MySQLdb.connect(host="mydb-cerve.cwapllllqfhh.us-west-2.rds.amazonaws.com",    # tu host, usualmente localhost
-                     user="pablincho1",         # tu usuario
-                     passwd="tiramelagoma",  # tu password
-                     db="Temp")        # el nombre de la base de datos
+with open("datos_acceso_db.json", "r") as archivo_datos:
+	datos_db = json.load(archivo_datos)
+	db = MySQLdb.connect(host= datos_db["host"],
+                     user= datos_db["user"],
+                     passwd= datos_db["passwd"],
+                     db= datos_db["db"])
 
 cur = db.cursor()
 
