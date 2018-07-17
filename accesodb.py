@@ -1,25 +1,85 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, current_app, send_file
 import MySQLdb
-from datetime import time, date, datetime
+import xlwt
+from datetime import time, date, datetime, timedelta
 from pytz import timezone
 import json
-
 app = Flask(__name__)
+var_gl = 0
+
+workbook = xlwt.Workbook()
+sheet = workbook.add_sheet("Historico",cell_overwrite_ok=True) # name of the worksheet
 
 with open("datos_acceso_db.json", "r") as archivo_datos:
 	datos_db = json.load(archivo_datos)
 	db = MySQLdb.connect(host= datos_db["host"],
-                     user= datos_db["user"],
-                     passwd= datos_db["passwd"],
-                     db= datos_db["db"])
+	                     user= datos_db["user"],
+        	             passwd= datos_db["passwd"],
+                	     db= datos_db["db"])
 
 cur = db.cursor()
 
 #db.close()
-@app.route("/historico")
+@app.route("/download")
+def return_files_tut():
+	try:
+		return send_file('/home/ec2-user/literate-garbanzo/test.xls', attachment_filename='test.xls')
+	except Exception as e:
+		return str(e)
+
+@app.route("/link", methods = ['GET','POST'])
+def funcion_html():
+
+	if request.method == 'POST':
+		desde = request.form['desde']
+		hasta = request.form['hasta']
+		#print (desde)
+		#print (hasta)
+
+		cur.execute("SELECT data,datetime FROM Valores WHERE DATE(datetime) >= '{0}' AND DATE(datetime) <= '{1}'".format(desde,hasta))
+		rowNum = 1 #keep track of rows
+		colNum = 0 #keep track of columns
+
+		sheet.write(0, 0, 'Valor')
+		sheet.write(0, 1, 'Fecha y hora')
+		# print all the cells of the row to excel sheet
+		for row in cur.fetchall() :
+			colNum = 0
+			for item in row:
+				sheet.write(rowNum, colNum,str(item)) # row, column, value
+				colNum = colNum + 1
+			rowNum = rowNum + 1
+
+		workbook.save("test.xls")
+
+		try:
+                	return send_file('/home/ec2-user/literate-garbanzo/test.xls', attachment_filename='test.xls')
+
+        	except Exception as e:
+                	return str(e)
+
+	return render_template('calendar1.html')
+
+@app.route("/historico", methods = ['GET','POST'])
 def select_datos():
 
-	cur.execute("SELECT data FROM Valores ORDER BY ID DESC LIMIT 18")
+	tam = 20
+	global var_gl
+	if request.method == 'POST':
+		indice_tabla = request.form['indice']
+		fecha = request.form['fecha']
+		var_gl = var_gl + int(indice_tabla)
+		if var_gl < 0: var_gl = 0
+
+		#fecha = request.form['fecha']
+
+	diff = timedelta(days=3)
+        fmt = "%Y-%m-%d"
+        ahora = datetime.now(timezone('America/Buenos_Aires')) - diff
+        hoy =  ahora.strftime(fmt)
+	print(fecha)
+
+	cur.execute("SELECT data FROM Valores WHERE DATE(datetime) = '{0}' ORDER BY ID DESC LIMIT {1},{2}".format(hoy, var_gl, tam))
 	dato = cur.fetchall()
 	temperaturas = []
 	for elem in dato:
@@ -27,8 +87,9 @@ def select_datos():
 			temperaturas.insert(0,subelem)
 	#print(temperaturas)
 
-	cur.execute("SELECT TIME(datetime) FROM Valores ORDER BY ID DESC LIMIT 18")
+	cur.execute("SELECT TIME(datetime) FROM Valores WHERE DATE(datetime) = '{0}' ORDER BY ID DESC LIMIT {1},{2}".format(hoy, var_gl,tam))
         datodt = cur.fetchall()
+	print(datodt)
 	times = []
 	for ele in datodt:
 		for subele in ele:
@@ -36,53 +97,10 @@ def select_datos():
 				valortimedel = subele
 				valor = (datetime.min + valortimedel).time()
 				times.insert(0,valor)
+	#print(hoy)
 	#print (times)
 
-	return render_template('time_chart.html', values=temperaturas, labels=times, legend="Temperaturas")
-
-@app.route("/time_chart")
-def time_chart():
-    legend = 'Temperaturas'
-    temperatures = [73.7, 73.4, 73.8, 72.8, 68.7, 65.2,
-                    61.8, 58.7, 58.2, 58.3, 60.5, 65.7,
-                    70.2, 71.4, 71.2, 70.9, 71.3, 71.1]
-    times = [time(hour=11, minute=14, second=15),
-             time(hour=11, minute=14, second=30),
-             time(hour=11, minute=14, second=45),
-             time(hour=11, minute=15, second=00),
-             time(hour=11, minute=15, second=15),
-             time(hour=11, minute=15, second=30),
-             time(hour=11, minute=15, second=45),
-             time(hour=11, minute=16, second=00),
-             time(hour=11, minute=16, second=15),
-             time(hour=11, minute=16, second=30),
-             time(hour=11, minute=16, second=45),
-             time(hour=11, minute=17, second=00),
-             time(hour=11, minute=17, second=15),
-             time(hour=11, minute=17, second=30),
-             time(hour=11, minute=17, second=45),
-             time(hour=11, minute=18, second=00),
-             time(hour=11, minute=18, second=15),
-             time(hour=11, minute=18, second=30)]
-    return render_template('time_chart.html', values=temperatures, labels=times, legend=legend)
-@app.route("/line_chart")
-def line_chart():
-    legend = 'Temperaturas'
-    temperatures = [73.7, 73.4, 73.8, 72.8, 68.7, 65.2,
-                    61.8, 58.7, 58.2, 58.3, 60.5, 65.7,
-                    70.2, 71.4, 71.2, 70.9, 71.3, 71.1]
-    times = ['12:00PM', '12:10PM', '12:20PM', '12:30PM', '12:40PM', '12:50PM',
-             '1:00PM', '1:10PM', '1:20PM', '1:30PM', '1:40PM', '1:50PM',
-             '2:00PM', '2:10PM', '2:20PM', '2:30PM', '2:40PM', '2:50PM']
-    return render_template('line_chart.html', values=temperatures, labels=times, legend=legend)
-
-
-@app.route("/simple_chart")
-def chart():
-    legend = 'Monthly Data'
-    labels = ["January", "February", "March", "April", "May", "June", "July", "August"]
-    values = [10, 9, 8, 7, 6, 4, 7, 8]
-    return render_template('chart.html', values=values, labels=labels, legend=legend)
+	return render_template('time_chart.html', values=temperaturas, labels=times, legend="Temperaturas", datenow=hoy)
 
 @app.route('/')
 def index():
