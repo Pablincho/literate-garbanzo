@@ -65,31 +65,38 @@ def select_datos():
 
 	tam = 20
 	global var_gl
+	global fecha
+	global last_fecha
+
+	fecha= datetime.now(timezone('America/Buenos_Aires')).strftime("%Y-%m-%d")
 	if request.method == 'POST':
-		indice_tabla = request.form['indice']
-		fecha = request.form['fecha']
-		var_gl = var_gl + int(indice_tabla)
+		indice_tabla = request.form.get('indice')
+		fecha = request.form.get('fecha')
+		if indice_tabla != None:
+			var_gl = var_gl + int(indice_tabla)
 		if var_gl < 0: var_gl = 0
+		if fecha == '':
+			fecha = last_fecha
+			print "Fecha none"
+	#diff = timedelta(days=3)
+        #fmt = "%Y-%m-%d"
+        #ahora = datetime.now(timezone('America/Buenos_Aires')) - diff
+        #hoy =  ahora.strftime(fmt)
+	last_fecha = fecha
+	print(var_gl)
+	print("La fecha es:",last_fecha)
 
-		#fecha = request.form['fecha']
-
-	diff = timedelta(days=3)
-        fmt = "%Y-%m-%d"
-        ahora = datetime.now(timezone('America/Buenos_Aires')) - diff
-        hoy =  ahora.strftime(fmt)
-	print(fecha)
-
-	cur.execute("SELECT data FROM Valores WHERE DATE(datetime) = '{0}' ORDER BY ID DESC LIMIT {1},{2}".format(hoy, var_gl, tam))
+	cur.execute("SELECT data FROM Valores WHERE DATE(datetime) = '{0}' ORDER BY ID DESC LIMIT {1},{2}".format(last_fecha, var_gl, tam))
 	dato = cur.fetchall()
+	#print(dato)
 	temperaturas = []
 	for elem in dato:
 		for subelem in elem:
 			temperaturas.insert(0,subelem)
 	#print(temperaturas)
 
-	cur.execute("SELECT TIME(datetime) FROM Valores WHERE DATE(datetime) = '{0}' ORDER BY ID DESC LIMIT {1},{2}".format(hoy, var_gl,tam))
+	cur.execute("SELECT TIME(datetime) FROM Valores WHERE DATE(datetime) = '{0}' ORDER BY ID DESC LIMIT {1},{2}".format(last_fecha, var_gl,tam))
         datodt = cur.fetchall()
-	print(datodt)
 	times = []
 	for ele in datodt:
 		for subele in ele:
@@ -100,7 +107,7 @@ def select_datos():
 	#print(hoy)
 	#print (times)
 
-	return render_template('time_chart.html', values=temperaturas, labels=times, legend="Temperaturas", datenow=hoy)
+	return render_template('time_chart1.html', values=temperaturas, labels=times, legend="Temperaturas", datenow=last_fecha)
 
 @app.route('/')
 def index():

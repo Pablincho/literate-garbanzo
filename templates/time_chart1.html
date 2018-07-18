@@ -14,14 +14,16 @@
 		<p id="pointSelected">Observaciones:Valores de temperatura del barril Nº2 de Sierra Chica</p>
 		<form action="http://54.190.34.0:5000/historico" method="post">
 		<button name="indice" value="1"> < </button>
-		</form>
-		<form action="http://54.190.34.0:5000/historico" method="post">
-		<button name="indice" value="-1"> > </button>
-		</form>
-		<form action="http://54.190.34.0:5000/historico" method="post">
-                <input type="date" name="fecha" value="">
-                <input type="submit" name="Boton">
+                <form action="http://54.190.34.0:5000/historico" method="post">
+                <button name="indice" value="-1"> > </button>
+		<form  action="http://54.190.34.0:5000/historico" method="post">
+  		<input type="date" name="fecha" value={{datenow}}>
+		<input type="submit" name="Boton">
                 </form>
+		<form  action="http://54.190.34.0:5000/link" method="get">
+                <input type="submit" name="Boton" value="Descargar archivo">
+                </form>
+
     		<script>
      		// Global parameters:
      		// do not resize the chart canvas when its container does (keep at 600x400px)
