@@ -6,8 +6,8 @@ from pytz import timezone
 app = Flask(__name__)
 
 db = MySQLdb.connect(host="mydb-cerve.cwapllllqfhh.us-west-2.rds.amazonaws.com",    # tu host, usualmente localhost
-                     user="pablincho1",         # tu usuario
-                     passwd="tiramelagoma",  # tu password
+                     user=os.environ.get("USERNAME"),         # tu usuario
+                     passwd=os.environ.get("PWD"),  # tu password
                      db="Temp")        # el nombre de la base de datos
 
 cur = db.cursor()
